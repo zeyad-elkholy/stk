@@ -24,7 +24,7 @@ if (strcmp(command + 5, "echo") == 0) {
       } else if (strcmp(command + 5, "exit") == 0) {
         printf("exit is a shell builtin\n");
       } else {
-        printf("%s: command not found\n", command + 5);
+        printf("%s: not found\n", command + 5);
       }
       continue;
     }
