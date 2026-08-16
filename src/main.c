@@ -13,6 +13,9 @@ int main(int argc, char *argv[]) {
     command[strcspn(command, "\n")] = 0; // Remove newline character
     if (strcmp(command, "exit") == 0) {
       break;
+    }else if (strncmp(command, "echo ",5) == 0){
+      printf("%s\n", command + 5);
+      continue;
     }
     printf("%s: command not found\n", command);
     
