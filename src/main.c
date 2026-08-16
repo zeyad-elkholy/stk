@@ -3,9 +3,9 @@
 #include <string.h>
 
 int main(int argc, char *argv[]) {
-  while (1) {
     // Flush after every printf
     setbuf(stdout, NULL);
+  while (1) {
     // TODO: Uncomment the code below to pass the first stage
     printf("$ ");
     char command[1048];
