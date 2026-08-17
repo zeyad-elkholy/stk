@@ -58,7 +58,7 @@ void* ExecuteCommand(char *command) {
         args[i++] = token;
         token = strtok(NULL, " ");
     }
-    if (find_in_path(token) != NULL) 
+    if (find_in_path(args[0]) == NULL) 
       return NULL;
     args[i] = NULL;
     
