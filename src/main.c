@@ -100,7 +100,9 @@ int main(int argc, char *argv[]) {
       type(command + 5);
       continue;
     }else{
-        if(ExecuteCommand(command) == NULL){;};
+        if(ExecuteCommand(command) == NULL){
+        printf("%s: command not found\n", command);
+        };
 }
   printf("%s: command not found\n", command);
     
