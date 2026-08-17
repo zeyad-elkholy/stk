@@ -94,7 +94,8 @@ int main(int argc, char *argv[]) {
       type(command + 5);
       continue;
     }else{
-      if (find_in_path(command) != NULL) {
+    char *token = strtok(command, " ");
+      if (find_in_path(token) != NULL) {
         ExecuteCommand(command);
         continue;}
       else{;}
