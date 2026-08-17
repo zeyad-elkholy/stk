@@ -51,7 +51,7 @@ char *path = find_in_path(command);
     printf("%s is %s\n", command , path);
   }
 }
-void* ExecuteCommand(char *command) {
+int ExecuteCommand(char *command) {
     char *args[100];
 
     char *token = strtok(command, " ");
@@ -61,7 +61,7 @@ void* ExecuteCommand(char *command) {
         token = strtok(NULL, " ");
     }
     if (find_in_path(args[0]) == NULL) 
-      return NULL;
+      return -1;
     args[i] = NULL;
     
         pid_t pid = fork();
@@ -99,14 +99,11 @@ int main(int argc, char *argv[]) {
       // printf("%s is %s\n", command + 5 , find_in_path(command + 5));
       type(command + 5);
       continue;
-    }else{
-        if(ExecuteCommand(command) == NULL){
+}else{
+    if(ExecuteCommand(command) == -1){
         printf("%s: command not found\n", command);
-        };
+    }}
 }
-  printf("%s: command not found\n", command);
-    
-  }
   return 0;
 }
 
