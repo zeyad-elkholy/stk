@@ -36,17 +36,19 @@ char *find_in_path(const char *command){
 // type builtin command
 void type(const char *command){
   char* BuiltinCommands[] ={"echo", "type", "exit"};
-  int size = sizeof(BuiltinCommands);
+  int size = sizeof(BuiltinCommands)/sizeof(BuiltinCommands[0]);
  for (int i = 0 ;i < size;i++) {
       if (strcmp(command, BuiltinCommands[i]) ==0) {
         printf("%s is a shell builtin\n", command);
         return;
       }
- } 
-   if (find_in_path(command) == NULL) {
+ 
+}
+char *path = find_in_path(command);
+   if (path== NULL) {
     printf("%s: not found\n", command );
   }else {
-    printf("%s is %s\n", command , find_in_path(command));
+    printf("%s is %s\n", command , path);
   }
 }
 void* ExecuteCommand(char *command) {
@@ -94,6 +96,7 @@ int main(int argc, char *argv[]) {
       printf("%s\n", command + 5);
       continue;
     }else if (strncmp(command, "type ",5) == 0){
+      // printf("%s is %s\n", command + 5 , find_in_path(command + 5));
       type(command + 5);
       continue;
     }else{
