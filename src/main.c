@@ -1,25 +1,34 @@
+#include <limits.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <limits.h>
-#include <signal.h>
 #include <sys/wait.h>
-// find path helper for type builtin command
-char *find_in_path(const char *command){
+#include <unistd.h>
+
+#define MAX_ARGS 100
+#define INPUT_SIZE 1048
+
+// --------------------------------------------------
+// PATH utilities
+// --------------------------------------------------
+
+char *find_in_path(const char *command)
+{
     char *path = getenv("PATH");
-    if (!path)
+
+    if (path == NULL)
         return NULL;
 
     char *copy = strdup(path);
-    if (!copy)
+    if (copy == NULL)
         return NULL;
 
     static char fullpath[PATH_MAX];
 
     char *dir = strtok(copy, ":");
 
-    while (dir) {
+    while (dir != NULL) {
         snprintf(fullpath, sizeof(fullpath), "%s/%s", dir, command);
 
         if (access(fullpath, X_OK) == 0) {
@@ -33,80 +42,125 @@ char *find_in_path(const char *command){
     free(copy);
     return NULL;
 }
-// type builtin command
-void type(const char *command){
-  char* BuiltinCommands[] ={"echo", "type", "exit"};
-  int size = sizeof(BuiltinCommands)/sizeof(BuiltinCommands[0]);
- for (int i = 0 ;i < size;i++) {
-      if (strcmp(command, BuiltinCommands[i]) ==0) {
-        printf("%s is a shell builtin\n", command);
-        return;
-      }
- 
+
+// --------------------------------------------------
+// Builtins
+// --------------------------------------------------
+
+void builtin_type(const char *command)
+{
+    const char *builtins[] = {
+        "echo",
+        "type",
+        "exit"
+    };
+
+    size_t count = sizeof(builtins) / sizeof(builtins[0]);
+
+    for (size_t i = 0; i < count; i++) {
+        if (strcmp(command, builtins[i]) == 0) {
+            printf("%s is a shell builtin\n", command);
+            return;
+        }
+    }
+
+    char *path = find_in_path(command);
+
+    if (path == NULL)
+        printf("%s: not found\n", command);
+    else
+        printf("%s is %s\n", command, path);
 }
-char *path = find_in_path(command);
-   if (path== NULL) {
-    printf("%s: not found\n", command );
-  }else {
-    printf("%s is %s\n", command , path);
-  }
-}
-int ExecuteCommand(char *command) {
-    char *args[100];
+
+// --------------------------------------------------
+// Execute external command
+// --------------------------------------------------
+
+int execute_command(char *command)
+{
+    char *args[MAX_ARGS];
+    int argc = 0;
 
     char *token = strtok(command, " ");
-    int i = 0;
-    while (token != NULL && i < 99) {
-        args[i++] = token;
+
+    while (token != NULL && argc < MAX_ARGS - 1) {
+        args[argc++] = token;
         token = strtok(NULL, " ");
     }
-    if (find_in_path(args[0]) == NULL) 
-      return -1;
-    args[i] = NULL;
-    
-        pid_t pid = fork();
 
-        if (pid == 0) {
-            signal(SIGINT, SIG_DFL);
-            execvp(args[0], args);
-            printf("%s: command not found\n", args[0]);
-        } 
-        else if (pid > 0) {
-            waitpid(pid, NULL, 0); 
-            
-            if (strcmp(args[0], "cat") == 0) {
-                printf("\n");
-            }
-        } 
-return 0;
+    args[argc] = NULL;
 
+    if (argc == 0)
+        return 0;
+
+    // Check whether command exists in PATH
+    if (find_in_path(args[0]) == NULL)
+        return -1;
+
+    pid_t pid = fork();
+
+    if (pid < 0) {
+        perror("fork");
+        return -1;
+    }
+
+    if (pid == 0) {
+        signal(SIGINT, SIG_DFL);
+
+        execvp(args[0], args);
+
+        // execvp only returns if it failed
+        perror(args[0]);
+        exit(EXIT_FAILURE);
+    }
+
+    waitpid(pid, NULL, 0);
+
+    return 0;
 }
-int main(int argc, char *argv[]) {
-    // Flush after every printf
+
+// --------------------------------------------------
+// Main shell
+// --------------------------------------------------
+
+int main(void)
+{
     setbuf(stdout, NULL);
-  while (1) {
-    // TODO: Uncomment the code below to pass the first stage
-    printf("$ ");
-    char command[1048];
-    fgets(command, sizeof(command), stdin);
-    command[strcspn(command, "\n")] = 0; // Remove newline character
-    if (strcmp(command, "exit") == 0) {
-      break;
-    }else if (strncmp(command, "echo ",5) == 0){
-      printf("%s\n", command + 5);
-      continue;
-    }else if (strncmp(command, "type ",5) == 0){
-      // printf("%s is %s\n", command + 5 , find_in_path(command + 5));
-      type(command + 5);
-      continue;
-}else{
-    if(ExecuteCommand(command) == -1){
-        printf("%s: command not found\n", command);
-    }}
+
+    while (1) {
+        printf("$ ");
+
+        char command[INPUT_SIZE];
+
+        if (fgets(command, sizeof(command), stdin) == NULL)
+            break;
+
+        command[strcspn(command, "\n")] = '\0';
+
+        // Empty input
+        if (command[0] == '\0')
+            continue;
+
+        // exit
+        if (strcmp(command, "exit") == 0)
+            break;
+
+        // echo
+        if (strncmp(command, "echo ", 5) == 0) {
+            printf("%s\n", command + 5);
+            continue;
+        }
+
+        // type
+        if (strncmp(command, "type ", 5) == 0) {
+            builtin_type(command + 5);
+            continue;
+        }
+
+        // External command
+        if (execute_command(command) != 0)
+            printf("%s: command not found\n", command);
+    }
+
+    return 0;
 }
-  return 0;
-}
-
-
-
-
