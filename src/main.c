@@ -3,6 +3,8 @@
 #include <string.h>
 #include <unistd.h>
 #include <limits.h>
+#include <signal.h>
+// find path helper for type builtin command
 char *find_in_path(const char *command){
     char *path = getenv("PATH");
     if (!path)
@@ -30,6 +32,50 @@ char *find_in_path(const char *command){
     free(copy);
     return NULL;
 }
+// type builtin command
+void type(const char *command){
+  char* BuiltinCommands[] ={"echo", "type", "exit"};
+  int size = sizeof(BuiltinCommands);
+ for (int i = 0 ;i < size;i++) {
+      if (strcmp(command, BuiltinCommands[i]) ==0) {
+        printf("%s is a shell builtin\n", command);
+        return;
+      }
+ } 
+   if (find_in_path(command) == NULL) {
+    printf("%s: not found\n", command );
+  }else {
+    printf("%s is %s\n", command , find_in_path(command));
+  }
+}
+void ExecuteCommand(char *command) {
+    char *args[100];
+
+    char *token = strtok(command, " ");
+    int i = 0;
+    while (token != NULL && i < 99) {
+        args[i++] = token;
+        token = strtok(NULL, " ");
+    }
+    args[i] = NULL;
+    
+        pid_t pid = fork();
+
+        if (pid == 0) {
+            signal(SIGINT, SIG_DFL);
+            if (execvp(args[0], args) == -1) {
+                perror("execvp failed");
+            }
+        } 
+        else if (pid > 0) {
+            waitpid(pid, NULL, 0); 
+            
+            if (strcmp(args[0], "cat") == 0) {
+                printf("\n");
+            }
+        } 
+
+}
 int main(int argc, char *argv[]) {
     // Flush after every printf
     setbuf(stdout, NULL);
@@ -45,19 +91,14 @@ int main(int argc, char *argv[]) {
       printf("%s\n", command + 5);
       continue;
     }else if (strncmp(command, "type ",5) == 0){
-      if (strcmp(command + 5, "echo") == 0) {
-        printf("echo is a shell builtin\n");
-      } else if (strcmp(command + 5, "type") == 0) {
-        printf("type is a shell builtin\n");
-      } else if (strcmp(command + 5, "exit") == 0) {
-        printf("exit is a shell builtin\n");
-      } else if (find_in_path(command + 5) == NULL) {
-        printf("%s: not found\n", command + 5);
-      }else {
-        printf("%s is %s\n", command + 5, find_in_path(command + 5));
-      }
+      type(command + 5);
       continue;
-    }
+    }else{
+      if (find_in_path(command) != NULL) {
+        ExecuteCommand(command);
+        continue;}
+      else{;}
+}
     printf("%s: command not found\n", command);
     
   }
@@ -65,5 +106,5 @@ int main(int argc, char *argv[]) {
 }
 
 
-char new_path[4096];
+
 
