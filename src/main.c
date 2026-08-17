@@ -97,7 +97,6 @@ int main(int argc, char *argv[]) {
       type(command + 5);
       continue;
     }else{
-    char *token = strtok(command, " ");
         if(ExecuteCommand(command) == NULL){continue;};
 }
   printf("%s: command not found\n", command);
