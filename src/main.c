@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <limits.h>
 #include <signal.h>
+#include <sys/wait.h>
 // find path helper for type builtin command
 char *find_in_path(const char *command){
     char *path = getenv("PATH");
