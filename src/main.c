@@ -52,7 +52,8 @@ void builtin_type(const char *command)
     const char *builtins[] = {
         "echo",
         "type",
-        "exit"
+        "exit", 
+        "pwd"
     };
 
     size_t count = sizeof(builtins) / sizeof(builtins[0]);
@@ -156,6 +157,15 @@ int main(void)
             builtin_type(command + 5);
             continue;
         }
+	if (strcmp(command, "pwd") == 0) {
+	    char cwd[PATH_MAX];
+	    if (getcwd(cwd, sizeof(cwd)) != NULL) {
+		printf("%s\n", cwd);
+	    } else {
+		perror("getcwd");
+	    }
+	    continue;
+	}
 
         // External command
         if (execute_command(command) != 0)
