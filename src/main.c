@@ -64,9 +64,8 @@ void ExecuteCommand(char *command) {
 
         if (pid == 0) {
             signal(SIGINT, SIG_DFL);
-            if (execvp(args[0], args) == -1) {
-                perror("execvp failed");
-            }
+            execvp(args[0], args);
+            printf("%s: command not found\n", args[0]);
         } 
         else if (pid > 0) {
             waitpid(pid, NULL, 0); 
