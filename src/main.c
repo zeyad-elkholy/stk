@@ -5,6 +5,7 @@
 #include <string.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include "lexer.h"
 
 #define MAX_ARGS 100
 #define INPUT_SIZE 1048
@@ -136,8 +137,14 @@ int main(void)
 
         if (fgets(command, sizeof(command), stdin) == NULL)
             break;
+        
 
         command[strcspn(command, "\n")] = '\0';
+
+        TokenList* tokens = lex(command);
+        // print_tokens(tokens);
+        // return 0;
+        
 
         // Empty input
         if (command[0] == '\0')
@@ -149,7 +156,13 @@ int main(void)
 
         // echo
         if (strncmp(command, "echo ", 5) == 0) {
-            printf("%s\n", command + 5);
+          for (size_t i = 1; i < tokens->count; i++) {
+            Token token = tokens->items[i];
+            if (token.type == TOKEN_WORD) {
+            printf("%s ", token.value);
+            }
+          }
+          printf("\n");
             continue;
         }
 
