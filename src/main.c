@@ -79,17 +79,22 @@ void builtin_type(const char *command)
 // Execute external command
 // --------------------------------------------------
 
-int execute_command(char *command)
+int execute_command(TokenList* tokens)
 {
     char *args[MAX_ARGS];
     int argc = 0;
+    
+    // char *token = strtok(command, " ");
 
-    char *token = strtok(command, " ");
-
-    while (token != NULL && argc < MAX_ARGS - 1) {
-        args[argc++] = token;
-        token = strtok(NULL, " ");
+      for (size_t i = 0; i < tokens->count; i++) {
+        Token token = tokens->items[i];
+        if (token.type == TOKEN_WORD) 
+            args[argc++] = token.value;
     }
+    // while (token != NULL && argc < MAX_ARGS - 1) {
+    //     args[argc++] = token;
+    //     token = strtok(NULL, " ");
+    // }
 
     args[argc] = NULL;
 
@@ -196,7 +201,7 @@ int main(void)
         }
 
         // External command
-        if (execute_command(command) != 0)
+        if (execute_command(tokens) != 0)
             printf("%s: command not found\n", command);
     }
 
