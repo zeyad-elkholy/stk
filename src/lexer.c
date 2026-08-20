@@ -40,21 +40,63 @@ TokenList *lex(const char *input)
 
         char *word = malloc(1024);
         int len = 0;
+    int in_single = 0;
+    int in_double = 0;
 
-        while (*p != '\0' && *p != ' ' && *p != '\t') {
+    while (*p != '\0') {
 
-            if (*p == '\'' || *p == '"') {
-                char quote = *p++;
+        // Outside quotes: whitespace ends the word
+        if (!in_single && !in_double &&
+            (*p == ' ' || *p == '\t')) {
+            break;
+        }
 
-                while (*p != '\0' && *p != quote)
-                    word[len++] = *p++;
-
-                if (*p == quote)
-                    p++;
-            } else {
+        // Backslash
+        if (*p == '\\') {
+            if (in_single) {
+                // In single quotes, backslash is literal
                 word[len++] = *p++;
             }
+            else if (in_double) {
+                // In double quotes, only escape these specially
+                if (p[1] == '"' || p[1] == '\\' || p[1] == '$') {
+                    p++;
+                    word[len++] = *p++;
+                }
+                else {
+                    // Backslash stays literal
+                    word[len++] = *p++;
+                }
+            }
+            else {
+                // Outside quotes, escape the next character
+                p++;
+
+                if (*p != '\0')
+                    word[len++] = *p++;
+            }
+
+            continue;
         }
+
+        // Single quote
+        if (*p == '\'' && !in_double) {
+            in_single = !in_single;
+            p++;
+            continue;
+        }
+
+        // Double quote
+        if (*p == '"' && !in_single) {
+            in_double = !in_double;
+            p++;
+            continue;
+        }
+
+        // Normal character
+        word[len++] = *p++;
+    }
+
 
         word[len] = '\0';
 
