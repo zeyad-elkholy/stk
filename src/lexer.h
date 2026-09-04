@@ -5,6 +5,10 @@
 
 typedef enum {
     TOKEN_WORD,
+    TOKEN_REDIR_IN,
+    TOKEN_REDIR_OUT,
+    TOKEN_REDIR_ERR,
+    TOKEN_APPEND,
     TOKEN_EOF
 } TokenType;
 

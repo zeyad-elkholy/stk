@@ -1,6 +1,8 @@
 #include <limits.h>
 #include <signal.h>
 #include <stdio.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/wait.h>
@@ -83,18 +85,45 @@ int execute_command(TokenList* tokens)
 {
     char *args[MAX_ARGS];
     int argc = 0;
+    int fd = 0;
     
-    // char *token = strtok(command, " ");
-
       for (size_t i = 0; i < tokens->count; i++) {
         Token token = tokens->items[i];
-        if (token.type == TOKEN_WORD) 
+        if (token.type != TOKEN_EOF) 
             args[argc++] = token.value;
+        if(token.type == TOKEN_REDIR_OUT || token.type == TOKEN_REDIR_ERR || token.type == TOKEN_REDIR_IN) {
+            if (i + 1 < tokens->count && tokens->items[i + 1].type == TOKEN_WORD) {
+                char *filename = tokens->items[i + 1].value;
+                if (token.type == TOKEN_REDIR_OUT) {
+                    fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+                    if (fd < 0) {
+                        perror("open");
+                        return -1;
+                    }
+                    dup2(fd, STDOUT_FILENO);
+                } else if (token.type == TOKEN_REDIR_ERR) {
+                    fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+                    if (fd < 0) {
+                        perror("open");
+                        return -1;
+                    }
+                    dup2(fd, STDERR_FILENO);
+                } else if (token.type == TOKEN_REDIR_IN) {
+                    fd = open(filename, O_RDONLY);
+                    if (fd < 0) {
+                        perror("open");
+                        return -1;
+                    }
+                    dup2(fd, STDIN_FILENO);
+                }
+                i++; // Skip the filename token
+            } else {
+                fprintf(stderr, "Syntax error: expected filename after redirection\n");
+                return -1;
+            }
+        }
+        
     }
-    // while (token != NULL && argc < MAX_ARGS - 1) {
-    //     args[argc++] = token;
-    //     token = strtok(NULL, " ");
-    // }
 
     args[argc] = NULL;
 

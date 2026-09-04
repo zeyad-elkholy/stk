@@ -78,6 +78,49 @@ TokenList *lex(const char *input)
 
             continue;
         }
+        if(*p == '>' && !in_single && !in_double) {
+            if (len > 0) {
+                word[len] = '\0';
+                add_token(tokens, TOKEN_WORD, word);
+                word = malloc(1024);
+                len = 0;
+            }
+
+            if (*(p + 1) == '>') {
+                add_token(tokens, TOKEN_APPEND, NULL);
+                p += 2;
+            } else {
+                add_token(tokens, TOKEN_REDIR_OUT, NULL);
+                p++;
+            }
+            continue;
+        }
+        if((*p == '<'  || *p == '2')&& !in_single && !in_double) {
+            if (len < 0) {
+                word[len] = '\0';
+                add_token(tokens, TOKEN_WORD, word);
+                word = malloc(1024);
+                len = 0;
+            }
+            if (*p == '2') {
+                if (*(p + 1) == '>') {
+                    add_token(tokens, TOKEN_REDIR_ERR, NULL);
+                    p += 2;
+                } else {
+                    word[len++] = *p++;
+                }
+                continue;
+            } 
+
+            if (*(p + 1) == '<') {
+                add_token(tokens, TOKEN_APPEND, NULL);
+                p += 2;
+            } else {
+                add_token(tokens, TOKEN_REDIR_OUT, NULL);
+                p++;
+            }
+            continue;
+        }
 
         // Single quote
         if (*p == '\'' && !in_double) {
