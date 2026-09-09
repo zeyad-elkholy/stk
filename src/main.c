@@ -7,7 +7,8 @@
 #include <string.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include "lexer.h"
+#include "lexer/lexer.h"
+#include "parser/parser.h"
 
 #define MAX_ARGS 100
 #define INPUT_SIZE 1048

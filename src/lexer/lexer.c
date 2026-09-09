@@ -87,7 +87,7 @@ TokenList *lex(const char *input)
             }
 
             if (*(p + 1) == '>') {
-                add_token(tokens, TOKEN_APPEND, NULL);
+                add_token(tokens, TOKEN_APPEND_IN, NULL);
                 p += 2;
             } else {
                 add_token(tokens, TOKEN_REDIR_OUT, NULL);
@@ -102,18 +102,9 @@ TokenList *lex(const char *input)
                 word = malloc(1024);
                 len = 0;
             }
-            if (*p == '2') {
-                if (*(p + 1) == '>') {
-                    add_token(tokens, TOKEN_REDIR_ERR, NULL);
-                    p += 2;
-                } else {
-                    word[len++] = *p++;
-                }
-                continue;
-            } 
 
             if (*(p + 1) == '<') {
-                add_token(tokens, TOKEN_APPEND, NULL);
+                add_token(tokens, TOKEN_APPEND_OUT, NULL);
                 p += 2;
             } else {
                 add_token(tokens, TOKEN_REDIR_OUT, NULL);
