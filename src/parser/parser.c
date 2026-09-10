@@ -3,8 +3,8 @@
 #include "parser.h"
 command *parse(TokenList *tokens){
   command *cmd = malloc(sizeof(command));
-  cmd->args = malloc(sizeof(char) * (tokens->count+ 1));
-  cmd->redirs = malloc(sizeof(redir) * (tokens->count+ 1));
+  cmd->args = malloc(sizeof(char*) * (tokens->count+ 1));
+  cmd->redirs = malloc(sizeof(redir*) * (tokens->count+ 1));
   cmd->argc = 0;
   cmd->redircount= 0;
 

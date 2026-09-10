@@ -12,7 +12,16 @@
 
 #define MAX_ARGS 100
 #define INPUT_SIZE 1048
-
+//--------------------------------------------------
+// Builtin commands
+// -------------------------------------------------
+const char *builtins[] = {
+    "echo",
+    "type",
+    "exit", 
+    "pwd" ,
+    "cd"
+};
 // --------------------------------------------------
 // PATH utilities
 // --------------------------------------------------
@@ -51,90 +60,98 @@ char *find_in_path(const char *command)
 // Builtins
 // --------------------------------------------------
 
-void builtin_type(const char *command)
+int Type(const char *command,short print_path)
 {
-    const char *builtins[] = {
-        "echo",
-        "type",
-        "exit", 
-        "pwd" ,
-        "cd"
-    };
 
     size_t count = sizeof(builtins) / sizeof(builtins[0]);
 
     for (size_t i = 0; i < count; i++) {
         if (strcmp(command, builtins[i]) == 0) {
-            printf("%s is a shell builtin\n", command);
-            return;
+            if(print_path)
+              printf("%s is a shell builtin\n", command);
+            return 0;
         }
     }
 
     char *path = find_in_path(command);
 
-    if (path == NULL)
+    if (path == NULL){
+      if(print_path)
         printf("%s: not found\n", command);
-    else
+      return 1;
+    }
+
+    else{
+      if(print_path)
         printf("%s is %s\n", command, path);
+      return 2;
+    }
+}
+
+void apply_redirection(redir *r){
+  int flags;
+  if (r->type == TOKEN_REDIR_IN)
+  flags = O_RDONLY;
+  else if (r->type == TOKEN_REDIR_OUT)
+  flags = O_WRONLY | O_CREAT | O_TRUNC;
+
+  else if (r->type == TOKEN_APPEND_OUT)
+  flags = O_WRONLY | O_CREAT | O_APPEND;
+
+  int file = open(r->file, flags, 0644);
+
+  dup2(file, r->fd);
+  close(file);
+}
+
+
+
+void execute_builtin(command* cmd, char** args)
+{
+    if (strcmp(cmd->args[0], "echo") == 0) {
+        for (int i = 1; args[i] != NULL; i++) {
+            printf("%s ", args[i]);
+        }
+        printf("\n");
+    } else if (strcmp(cmd->args[0], "type") == 0) {
+        Type(args[1], 1);
+    } else if (strcmp(cmd->args[0], "exit") == 0) {
+        exit(0);
+    } else if (strcmp(cmd->args[0], "pwd") == 0) {
+        char cwd[PATH_MAX];
+        if (getcwd(cwd, sizeof(cwd)) != NULL) {
+            printf("%s\n", cwd);
+        } else {
+            perror("getcwd");
+        }
+    } else if (strcmp(cmd->args[0], "cd") == 0) {
+        char *path = args[1];
+        if (path == NULL || strcmp(path, "~") == 0) {
+            path = getenv("HOME");
+        }
+
+        if (chdir(path) != 0) {
+            fprintf(stderr, "cd: %s: ", path);
+            perror("");
+        }
+    }
 }
 
 // --------------------------------------------------
 // Execute external command
 // --------------------------------------------------
 
-int execute_command(TokenList* tokens)
+int execute_command(command *cmd)
 {
-    char *args[MAX_ARGS];
-    int argc = 0;
-    int fd = 0;
-    
-      for (size_t i = 0; i < tokens->count; i++) {
-        Token token = tokens->items[i];
-        if (token.type != TOKEN_EOF) 
-            args[argc++] = token.value;
-        if(token.type == TOKEN_REDIR_OUT || token.type == TOKEN_REDIR_ERR || token.type == TOKEN_REDIR_IN) {
-            if (i + 1 < tokens->count && tokens->items[i + 1].type == TOKEN_WORD) {
-                char *filename = tokens->items[i + 1].value;
-                if (token.type == TOKEN_REDIR_OUT) {
-                    fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-                    if (fd < 0) {
-                        perror("open");
-                        return -1;
-                    }
-                    dup2(fd, STDOUT_FILENO);
-                } else if (token.type == TOKEN_REDIR_ERR) {
-                    fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-                    if (fd < 0) {
-                        perror("open");
-                        return -1;
-                    }
-                    dup2(fd, STDERR_FILENO);
-                } else if (token.type == TOKEN_REDIR_IN) {
-                    fd = open(filename, O_RDONLY);
-                    if (fd < 0) {
-                        perror("open");
-                        return -1;
-                    }
-                    dup2(fd, STDIN_FILENO);
-                }
-                i++; // Skip the filename token
-            } else {
-                fprintf(stderr, "Syntax error: expected filename after redirection\n");
-                return -1;
-            }
-        }
-        
+    if(strcmp(cmd->args[0], "exit") ==0 || strcmp(cmd->args[0], "cd") ==0){
+      execute_builtin(cmd, cmd->args);
+      return 0;
     }
 
-    args[argc] = NULL;
-
-    if (argc == 0)
-        return 0;
-
-    // Check whether command exists in PATH
-    if (find_in_path(args[0]) == NULL)
-        return -1;
-
+    int type = Type(cmd->args[0], 0);
+    if (type == 1) {
+        return -1; // Command not found
+    }
     pid_t pid = fork();
 
     if (pid < 0) {
@@ -143,13 +160,21 @@ int execute_command(TokenList* tokens)
     }
 
     if (pid == 0) {
-        signal(SIGINT, SIG_DFL);
+      signal(SIGINT, SIG_DFL);
+      for (int i =0; i < cmd->redircount; i++) {
+        apply_redirection(&cmd->redirs[i]);
+      }
+      if(type == 0){
+        execute_builtin(cmd, cmd->args);
+        exit(EXIT_SUCCESS);
+      }
 
-        execvp(args[0], args);
 
-        // execvp only returns if it failed
-        perror(args[0]);
-        exit(EXIT_FAILURE);
+      execvp(cmd->args[0], cmd->args);
+
+      // execvp only returns if it failed
+      perror(cmd->args[0]);
+      exit(EXIT_FAILURE);
     }
 
     waitpid(pid, NULL, 0);
@@ -168,71 +193,69 @@ int main(void)
     while (1) {
         printf("$ ");
 
-        char command[INPUT_SIZE];
+        char input[INPUT_SIZE];
 
-        if (fgets(command, sizeof(command), stdin) == NULL)
+        if (fgets(input, sizeof(input), stdin) == NULL)
             break;
         
 
-        command[strcspn(command, "\n")] = '\0';
-
-        TokenList* tokens = lex(command);
-        // print_tokens(tokens);
-        // return 0;
-        
-
+        input[strcspn(input, "\n")] = '\0';
         // Empty input
-        if (command[0] == '\0')
+        if (input[0] == '\0')
             continue;
 
-        // exit
-        if (strcmp(command, "exit") == 0)
-            break;
+        TokenList* tokens = lex(input);
+        command* cmd = parse(tokens);
 
-        // echo
-        if (strncmp(command, "echo ", 5) == 0) {
-          for (size_t i = 1; i < tokens->count; i++) {
-            Token token = tokens->items[i];
-            if (token.type == TOKEN_WORD) {
-            printf("%s ", token.value);
-            }
-          }
-          printf("\n");
-            continue;
-        }
-
-        // type
-        if (strncmp(command, "type ", 5) == 0) {
-            builtin_type(command + 5);
-            continue;
-        }
-        // pwd
-        if (strcmp(command, "pwd") == 0) {
-            char cwd[PATH_MAX];
-            if (getcwd(cwd, sizeof(cwd)) != NULL) {
-          printf("%s\n", cwd);
-            } else {
-          perror("getcwd");
-            }
-            continue;
-        }
-        // cd
-        if (strncmp(command, "cd ", 3) == 0) {
-            char *path = command + 3;
-            if (strcmp(path, "~") == 0) {
-                path = getenv("HOME");
-            }
-
-            if (chdir(path) != 0) {
-              fprintf(stderr, "cd: %s: ", path);
-              perror("");
-            }
-            continue;
-        }
-
-        // External command
-        if (execute_command(tokens) != 0)
-            printf("%s: command not found\n", command);
+        //
+        // // exit
+        // if (strcmp(input, "exit") == 0)
+        //     break;
+        //
+        // // echo
+        // if (strncmp(input, "echo ", 5) == 0) {
+        //   for (size_t i = 1; i < tokens->count; i++) {
+        //     Token token = tokens->items[i];
+        //     if (token.type == TOKEN_WORD) {
+        //     printf("%s ", token.value);
+        //     }
+        //   }
+        //   printf("\n");
+        //     continue;
+        // }
+        //
+        // // type
+        // if (strncmp(input, "type ", 5) == 0) {
+        //     builtin_type(input + 5);
+        //     continue;
+        // }
+        // // pwd
+        // if (strcmp(input, "pwd") == 0) {
+        //     char cwd[PATH_MAX];
+        //     if (getcwd(cwd, sizeof(cwd)) != NULL) {
+        //   printf("%s\n", cwd);
+        //     } else {
+        //   perror("getcwd");
+        //     }
+        //     continue;
+        // }
+        // // cd
+        // if (strncmp(input, "cd ", 3) == 0) {
+        //     char *path = input + 3;
+        //     if (strcmp(path, "~") == 0) {
+        //         path = getenv("HOME");
+        //     }
+        //
+        //     if (chdir(path) != 0) {
+        //       fprintf(stderr, "cd: %s: ", path);
+        //       perror("");
+        //     }
+        //     continue;
+        // }
+        //
+        // External input
+        if (execute_command(cmd) == -1)
+            printf("%s: command not found\n", input);
     }
 
     return 0;

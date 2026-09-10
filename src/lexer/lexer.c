@@ -87,16 +87,34 @@ TokenList *lex(const char *input)
             }
 
             if (*(p + 1) == '>') {
-                add_token(tokens, TOKEN_APPEND_IN, NULL);
+                add_token(tokens, TOKEN_APPEND_OUT, ">>");
                 p += 2;
             } else {
-                add_token(tokens, TOKEN_REDIR_OUT, NULL);
+                add_token(tokens, TOKEN_REDIR_OUT, ">");  
                 p++;
             }
             continue;
         }
-        if((*p == '<'  || *p == '2')&& !in_single && !in_double) {
-            if (len < 0) {
+        if(((*p == '2'|| *p == '1' ) && *(p+1) == '>')&& !in_single && !in_double) {
+            if (len > 0) {
+                word[len] = '\0';
+                add_token(tokens, TOKEN_WORD, word);
+                word = malloc(1024);
+                len = 0;
+            }
+            char fdchar = *p;
+
+            if (*(p + 2) == '>') {
+                add_token(tokens, TOKEN_APPEND_OUT,fdchar == '2' ? "2>>" : "1>>");
+                p += 3;
+            } else {
+                add_token(tokens, TOKEN_REDIR_OUT, fdchar == '2' ? "2>" : "1>");
+                p+= 2;
+            }
+            continue;
+        }
+        if(*p == '<' && !in_single && !in_double) {
+            if (len > 0) {
                 word[len] = '\0';
                 add_token(tokens, TOKEN_WORD, word);
                 word = malloc(1024);
@@ -104,10 +122,10 @@ TokenList *lex(const char *input)
             }
 
             if (*(p + 1) == '<') {
-                add_token(tokens, TOKEN_APPEND_OUT, NULL);
+                add_token(tokens, TOKEN_APPEND_IN, "<<");
                 p += 2;
             } else {
-                add_token(tokens, TOKEN_REDIR_OUT, NULL);
+                add_token(tokens, TOKEN_REDIR_IN, "<");  
                 p++;
             }
             continue;
@@ -131,10 +149,13 @@ TokenList *lex(const char *input)
         word[len++] = *p++;
     }
 
-
+    if(len > 0) {
         word[len] = '\0';
 
         add_token(tokens, TOKEN_WORD, word);
+    }else{
+        free(word);
+    }
     }
 
     add_token(tokens, TOKEN_EOF, NULL);
