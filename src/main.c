@@ -20,7 +20,8 @@ const char *builtins[] = {
     "type",
     "exit", 
     "pwd" ,
-    "cd"
+    "cd"  ,
+    "jobs"
 };
 // --------------------------------------------------
 // PATH utilities
@@ -207,53 +208,6 @@ int main(void)
         TokenList* tokens = lex(input);
         command* cmd = parse(tokens);
 
-        //
-        // // exit
-        // if (strcmp(input, "exit") == 0)
-        //     break;
-        //
-        // // echo
-        // if (strncmp(input, "echo ", 5) == 0) {
-        //   for (size_t i = 1; i < tokens->count; i++) {
-        //     Token token = tokens->items[i];
-        //     if (token.type == TOKEN_WORD) {
-        //     printf("%s ", token.value);
-        //     }
-        //   }
-        //   printf("\n");
-        //     continue;
-        // }
-        //
-        // // type
-        // if (strncmp(input, "type ", 5) == 0) {
-        //     builtin_type(input + 5);
-        //     continue;
-        // }
-        // // pwd
-        // if (strcmp(input, "pwd") == 0) {
-        //     char cwd[PATH_MAX];
-        //     if (getcwd(cwd, sizeof(cwd)) != NULL) {
-        //   printf("%s\n", cwd);
-        //     } else {
-        //   perror("getcwd");
-        //     }
-        //     continue;
-        // }
-        // // cd
-        // if (strncmp(input, "cd ", 3) == 0) {
-        //     char *path = input + 3;
-        //     if (strcmp(path, "~") == 0) {
-        //         path = getenv("HOME");
-        //     }
-        //
-        //     if (chdir(path) != 0) {
-        //       fprintf(stderr, "cd: %s: ", path);
-        //       perror("");
-        //     }
-        //     continue;
-        // }
-        //
-        // External input
         if (execute_command(cmd) == -1)
             printf("%s: command not found\n", input);
     }
