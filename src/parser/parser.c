@@ -4,7 +4,7 @@
 command *parse(TokenList *tokens){
   command *cmd = malloc(sizeof(command));
   cmd->args = malloc(sizeof(char*) * (tokens->count+ 1));
-  cmd->redirs = malloc(sizeof(redir*) * (tokens->count+ 1));
+  cmd->redirs = malloc(sizeof(redir) * (tokens->count+ 1));
   cmd->argc = 0;
   cmd->redircount= 0;
 
@@ -30,11 +30,15 @@ command *parse(TokenList *tokens){
           case TOKEN_REDIR_OUT:
             cmd->redirs[cmd->redircount].fd = 1;
             break;
+          
         }
         cmd->redirs[cmd->redircount].type = token->type;
         cmd->redirs[cmd->redircount++].file = filename->value;
       }
 
+    }else if(token->type == TOKEN_BACKGROUND){
+      cmd->is_background = 1;
+      tokens->items[i].value = NULL;
     }
   }
   cmd->args[cmd->argc] = NULL;

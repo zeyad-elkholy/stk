@@ -5,10 +5,14 @@
 
 typedef enum {
     TOKEN_WORD,
-    TOKEN_REDIR_IN,
-    TOKEN_REDIR_OUT,
-    TOKEN_APPEND_IN,
-    TOKEN_APPEND_OUT,
+
+    TOKEN_REDIR_IN,  // <
+    TOKEN_REDIR_OUT, // >
+    TOKEN_APPEND_IN, // <<
+    TOKEN_APPEND_OUT,// >>
+    TOKEN_PIPE,      // |
+    TOKEN_BACKGROUND,// &
+
     TOKEN_EOF
 } TokenType;
 typedef struct{

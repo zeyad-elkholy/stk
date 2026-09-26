@@ -153,6 +153,7 @@ int execute_command(command *cmd)
     if (type == 1) {
         return -1; // Command not found
     }
+    // printf("background = %d\n", cmd->is_background);
     pid_t pid = fork();
 
     if (pid < 0) {
@@ -177,8 +178,13 @@ int execute_command(command *cmd)
       perror(cmd->args[0]);
       exit(EXIT_FAILURE);
     }
+    if (!cmd->is_background){
+    waitpid(pid, NULL, 0);}
+    else {
+      printf("[1] %d\n", pid);
+    
+    }
 
-    waitpid(pid, NULL, 0);
 
     return 0;
 }

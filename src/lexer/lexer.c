@@ -32,16 +32,16 @@ TokenList *lex(const char *input)
 
     while (*p) {
         // skip spaces
-        while (*p == ' ' || *p == '\t')
-            p++;
+      while (*p == ' ' || *p == '\t')
+          p++;
 
-        if (*p == '\0')
-            break;
+      if (*p == '\0')
+          break;
 
-        char *word = malloc(1024);
-        int len = 0;
-    int in_single = 0;
-    int in_double = 0;
+      char *word = malloc(1024);
+      int len = 0;
+      int in_single = 0;
+      int in_double = 0;
 
     while (*p != '\0') {
 
@@ -144,6 +144,17 @@ TokenList *lex(const char *input)
             p++;
             continue;
         }
+        if(*p == '&'){
+            if (len > 0) {
+                word[len] = '\0';
+                add_token(tokens, TOKEN_WORD, word);
+                word = malloc(1024);
+                len = 0;
+            }
+            add_token(tokens, TOKEN_BACKGROUND, "&");
+            p++;
+            continue;
+        }
 
         // Normal character
         word[len++] = *p++;
@@ -156,7 +167,7 @@ TokenList *lex(const char *input)
     }else{
         free(word);
     }
-    }
+  }
 
     add_token(tokens, TOKEN_EOF, NULL);
 

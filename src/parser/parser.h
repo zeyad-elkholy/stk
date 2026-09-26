@@ -9,6 +9,7 @@ typedef struct {
 
   redir *redirs;
   int redircount;
+  bool is_background;
 } command;
 
 command *parse(TokenList *tokens);
