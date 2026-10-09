@@ -233,7 +233,7 @@ void execute_builtin(command* cmd, char** args)
 
 int execute_command(command *cmd)
 {
-    if(strcmp(cmd->args[0], "exit") ==0 || strcmp(cmd->args[0], "cd") ==0){
+    if(strcmp(cmd->args[0], "exit") ==0 || strcmp(cmd->args[0], "cd") ==0 || strcmp(cmd->args[0], "jobs") ==0){
       execute_builtin(cmd, cmd->args);
       return 0;
     }
