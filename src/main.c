@@ -46,7 +46,8 @@ int get_max_job_id(void) {
     }
     return max_id;
 }
-
+int previous_job_id = -1;
+int current_job_id = -1;
 // Always scans from index 0 to assign the lowest available Job ID (Recycling)
 int add_job(pid_t pid, char **args) {
     char cmd_str[256] = "";
@@ -61,6 +62,8 @@ int add_job(pid_t pid, char **args) {
             job_table[i].pid = pid;
             strncpy(job_table[i].command, cmd_str, sizeof(job_table[i].command) - 1);
             job_table[i].active = 1;
+            previous_job_id = current_job_id;
+            current_job_id = job_table[i].id;
 
             printf("[%d] %d\n", job_table[i].id, pid);
             return job_table[i].id;
@@ -81,11 +84,13 @@ void reap_jobs(void) {
         for (int i = 0; i < MAX_JOBS; i++) {
             if (job_table[i].active && job_table[i].pid == pid) {
                 // Print exact CodeCrafters formatted output
-                if (job_table[i].id == max_id) {
-                    printf("[%d]+  %-24s%s\n", job_table[i].id, "Done", job_table[i].command);
-                } else {
-                    printf("[%d]   %-24s%s\n", job_table[i].id, "Done", job_table[i].command);
+                char indicator = ' ';
+                if (job_table[i].id == current_job_id) {
+                    indicator = '+';
+                } else if (job_table[i].id == previous_job_id) {
+                    indicator = '-';
                 }
+                printf("[%d]%c  %-24s%s\n", job_table[i].id, indicator, "Done", job_table[i].command);
 
                 // Free slot so ID is recycled for the next background process
                 job_table[i].active = 0;
@@ -101,13 +106,16 @@ void print_jobs(void) {
     int max_id = get_max_job_id();
 
     for (int i = 0; i < MAX_JOBS; i++) {
-        if (job_table[i].active) {
-            if (job_table[i].id == max_id) {
-                printf("[%d]+  %-24s%s\n", job_table[i].id, "Running", job_table[i].command);
-            } else {
-                printf("[%d]   %-24s%s\n", job_table[i].id, "Running", job_table[i].command);
-            }
-        }
+      if (job_table[i].active) {
+          char indicator = ' ';
+          if (job_table[i].id == current_job_id) {
+              indicator = '+';
+          } else if (job_table[i].id == previous_job_id) {
+              indicator = '-';
+          }
+
+          printf("[%d]%c  %-24s%s\n", job_table[i].id, indicator, "Running", job_table[i].command);
+      }
     }
 }
 // --------------------------------------------------
