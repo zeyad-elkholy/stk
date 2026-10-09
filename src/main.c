@@ -287,6 +287,7 @@ int main(void)
     setbuf(stdout, NULL);
 
     while (1) {
+        reap_jobs();
         printf("$ ");
 
         char input[INPUT_SIZE];
