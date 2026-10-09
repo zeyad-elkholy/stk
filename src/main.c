@@ -223,6 +223,7 @@ void execute_builtin(command* cmd, char** args)
             perror("");
         }
     } else if (strcmp(cmd->args[0], "jobs") == 0) {
+        reap_jobs();
         print_jobs();
     }
 }
