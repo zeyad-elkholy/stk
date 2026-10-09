@@ -24,6 +24,93 @@ const char *builtins[] = {
     "jobs"
 };
 // --------------------------------------------------
+// Steve's job table implementation
+// --------------------------------------------------
+#define MAX_JOBS 64
+
+typedef struct {
+    int id;             // 1-based job number ([1], [2], etc.)
+    pid_t pid;          // Process ID
+    char command[256];  // Command string for display
+    int active;         // 1 if active, 0 if free for recycling
+} Job;
+
+Job job_table[MAX_JOBS];
+// Helper to find the highest active job ID for the '+' indicator
+int get_max_job_id(void) {
+    int max_id = -1;
+    for (int i = 0; i < MAX_JOBS; i++) {
+        if (job_table[i].active && job_table[i].id > max_id) {
+            max_id = job_table[i].id;
+        }
+    }
+    return max_id;
+}
+
+// Always scans from index 0 to assign the lowest available Job ID (Recycling)
+int add_job(pid_t pid, char **args) {
+    char cmd_str[256] = "";
+    for (int i = 0; args[i] != NULL; i++) {
+        if (i > 0) strncat(cmd_str, " ", sizeof(cmd_str) - strlen(cmd_str) - 1);
+        strncat(cmd_str, args[i], sizeof(cmd_str) - strlen(cmd_str) - 1);
+    }
+
+    for (int i = 0; i < MAX_JOBS; i++) {
+        if (!job_table[i].active) {
+            job_table[i].id = i + 1;
+            job_table[i].pid = pid;
+            strncpy(job_table[i].command, cmd_str, sizeof(job_table[i].command) - 1);
+            job_table[i].active = 1;
+
+            printf("[%d] %d\n", job_table[i].id, pid);
+            return job_table[i].id;
+        }
+    }
+    fprintf(stderr, "shell: job table full\n");
+    return -1;
+}
+
+// Non-blocking reap executed immediately before printing the prompt
+void reap_jobs(void) {
+    int status;
+    pid_t pid;
+
+    while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
+        int max_id = get_max_job_id();
+
+        for (int i = 0; i < MAX_JOBS; i++) {
+            if (job_table[i].active && job_table[i].pid == pid) {
+                // Print exact CodeCrafters formatted output
+                if (job_table[i].id == max_id) {
+                    printf("[%d]+  %-24s%s\n", job_table[i].id, "Done", job_table[i].command);
+                } else {
+                    printf("[%d]   %-24s%s\n", job_table[i].id, "Done", job_table[i].command);
+                }
+
+                // Free slot so ID is recycled for the next background process
+                job_table[i].active = 0;
+                job_table[i].pid = 0;
+                break;
+            }
+        }
+    }
+}
+
+// Print running jobs for `jobs` builtin
+void print_jobs(void) {
+    int max_id = get_max_job_id();
+
+    for (int i = 0; i < MAX_JOBS; i++) {
+        if (job_table[i].active) {
+            if (job_table[i].id == max_id) {
+                printf("[%d]+  %-24s%s\n", job_table[i].id, "Running", job_table[i].command);
+            } else {
+                printf("[%d]   %-24s%s\n", job_table[i].id, "Running", job_table[i].command);
+            }
+        }
+    }
+}
+// --------------------------------------------------
 // PATH utilities
 // --------------------------------------------------
 
@@ -135,6 +222,8 @@ void execute_builtin(command* cmd, char** args)
             fprintf(stderr, "cd: %s: ", path);
             perror("");
         }
+    } else if (strcmp(cmd->args[0], "jobs") == 0) {
+        print_jobs();
     }
 }
 
@@ -181,7 +270,7 @@ int execute_command(command *cmd)
     if (!cmd->is_background){
     waitpid(pid, NULL, 0);}
     else {
-      printf("[1] %d\n", pid);
+      add_job(pid, cmd->args);
     
     }
 
